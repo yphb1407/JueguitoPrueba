@@ -9,8 +9,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.miEquipo.Entidades.*;
 import com.miEquipo.Factory.EnemigoFactory;
-import com.miEquipo.Adapter.GdxScoreAdapter;
-import com.miEquipo.Adapter.ScoreRepository;
+import com.miEquipo.Datos_y_almacen.ScoreManager;
 import com.miEquipo.Decorador.VidaRegeneracionDecorator;
 import com.miEquipo.patron_states.EstadoQuieto;
 import com.miEquipo.patron_states.EstadoSaltando;
@@ -25,12 +24,10 @@ public class PartidaFacade {
     private List<Proyectil> proyectiles;
     private List<TextoFlotante> textos;
     private List<ItemRegeneracion> items;
-    private ScoreRepository scoreService;
-    private BitmapFont font;
+    private ScoreManager scoreManager;
 
     private int scoreActual = 0;
-    private int maxScore = 0;
-    private int vida = 100;
+    private int vida = 20;
     private final float SUELO_Y = 64;
 
     private Texture texturaTerreno;
@@ -40,21 +37,18 @@ public class PartidaFacade {
     private float timerItem = 0;
     private float proximoItemEn = MathUtils.random(10, 30);
 
-    public PartidaFacade() {
+    public PartidaFacade(ScoreManager scoreManager) {
+        this.scoreManager = scoreManager;
         this.personaje = new Personaje(140, SUELO_Y);
         this.listaEnemigos = new ArrayList<>();
         this.proyectiles = new ArrayList<>();
         this.textos = new ArrayList<>();
         this.items = new ArrayList<>();
-        this.font = new BitmapFont();
         this.texturaTerreno = new Texture("terreno.png");
-        this.scoreService = new GdxScoreAdapter();
-        this.maxScore = scoreService.cargarRecord();
     }
 
     public void actualizarYEscucharEntradas(float delta) {
-        if (vida <= 0) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.S)) guardarRecord();
+        if (isGameOver()) {
             return;
         }
 
@@ -93,11 +87,9 @@ public class PartidaFacade {
             }
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) guardarRecord();
-
         personaje.actualizar(delta);
 
-        // Des-decorar si la regeneración terminó (Vuelve a color normal)
+        // Des-decorar si la regeneración terminó
         if (personaje instanceof VidaRegeneracionDecorator) {
             if (((VidaRegeneracionDecorator) personaje).isTerminado()) {
                 personaje = ((VidaRegeneracionDecorator) personaje).getPersonajeOriginal();
@@ -111,7 +103,6 @@ public class PartidaFacade {
             ItemRegeneracion item = itI.next();
             item.actualizar(delta, SUELO_Y);
             if (item.colisiona(personaje.getX(), personaje.getY(), 64, 64)) {
-                // Aplicar regeneración (decorar)
                 personaje = new VidaRegeneracionDecorator(personaje, (cant) -> {
                     vida = Math.min(500, vida + cant);
                     textos.add(new TextoFlotante("+" + cant + " HP", personaje.getX(), personaje.getY() + 80, Color.GREEN));
@@ -120,11 +111,6 @@ public class PartidaFacade {
             }
         }
 
-        // Resto de la lógica (Proyectiles, Enemigos, etc.)
-        actualizarEntidadesSecundarias(delta);
-    }
-
-    private void actualizarEntidadesSecundarias(float delta) {
         // Proyectiles
         Iterator<Proyectil> itP = proyectiles.iterator();
         while (itP.hasNext()) {
@@ -169,29 +155,17 @@ public class PartidaFacade {
         return null;
     }
 
-    private void guardarRecord() {
-        if (scoreActual > maxScore) {
-            maxScore = scoreActual;
-            scoreService.guardarRecord("Jugador", maxScore);
-            textos.add(new TextoFlotante("RECORD GUARDADO!", Gdx.graphics.getWidth()/2f, Gdx.graphics.getHeight()/2f, Color.GOLD));
-        }
-    }
-
-    public void renderizarMundo(SpriteBatch batch) {
-        // 1. Dibujar terreno (SIN TINTE)
+    public void renderizarMundo(SpriteBatch batch, BitmapFont font) {
+        // DIBUJAR TERRENO
         for (int i = 0; i < Gdx.graphics.getWidth(); i += 64) {
             batch.draw(texturaTerreno, i, 0, 64, 64);
         }
 
-        // 2. Dibujar Items y Enemigos (SIN TINTE)
+        // DIBUJAR ENTIDADES
         for (ItemRegeneracion item : items) item.dibujar(batch);
-        for (Enemigo enemigo : listaEnemigos) enemigo.dibujar(batch);
-        for (Proyectil p : proyectiles) p.dibujar(batch);
-
-        // 3. Dibujar Personaje (Con tinte verde SI está regenerando)
         personaje.dibujar(batch);
-
-        // 4. Dibujar Textos
+        for (Proyectil p : proyectiles) p.dibujar(batch);
+        for (Enemigo enemigo : listaEnemigos) enemigo.dibujar(batch);
         for (TextoFlotante t : textos) t.dibujar(batch, font);
 
         // UI
@@ -199,11 +173,24 @@ public class PartidaFacade {
         font.draw(batch, "VIDA: " + vida, 20, Gdx.graphics.getHeight() - 20);
         font.draw(batch, "SCORE: " + scoreActual, 20, Gdx.graphics.getHeight() - 40);
         font.setColor(Color.GOLD);
-        font.draw(batch, "MAX: " + maxScore, 20, Gdx.graphics.getHeight() - 60);
+        font.draw(batch, "MAX: " + scoreManager.getHighestScore(), 20, Gdx.graphics.getHeight() - 60);
 
-        if (vida <= 0) {
+        if (isGameOver()) {
             font.setColor(Color.RED);
-            font.draw(batch, "GAME OVER - S para guardar", Gdx.graphics.getWidth()/2f - 100, Gdx.graphics.getHeight()/2f);
+            font.draw(batch, "GAME OVER", Gdx.graphics.getWidth()/2f - 50, Gdx.graphics.getHeight()/2f + 50);
+            font.draw(batch, "Ingresa tu nombre para el ranking", Gdx.graphics.getWidth()/2f - 150, Gdx.graphics.getHeight()/2f);
         }
+    }
+
+    public boolean isGameOver() {
+        return vida <= 0;
+    }
+
+    public int getScoreActual() {
+        return scoreActual;
+    }
+
+    public void dispose() {
+        texturaTerreno.dispose();
     }
 }
