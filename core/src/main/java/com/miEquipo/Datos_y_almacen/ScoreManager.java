@@ -5,6 +5,9 @@ import com.badlogic.gdx.Preferences;
 import java.util.Collections;
 import java.util.LinkedList;
 
+/**
+ * Gestiona el ranking de puntuaciones del juego, cargando, guardando y añadiendo nuevas entradas.
+ */
 public class ScoreManager {
     private static final String PREFS_NAME = "juego_ranking";
     private static final String KEY_SCORES = "top_scores";
@@ -12,12 +15,18 @@ public class ScoreManager {
     private LinkedList<ScoreEntry> topScores;
     private final int MAX_RANKING_SIZE = 5;
 
+    /**
+     * Inicializa el gestor de puntuaciones, cargando las puntuaciones guardadas.
+     */
     public ScoreManager() {
         prefs = Gdx.app.getPreferences(PREFS_NAME);
         topScores = new LinkedList<>();
         loadScores();
     }
 
+    /**
+     * Carga las puntuaciones del ranking desde las preferencias del juego.
+     */
     private void loadScores() {
         String scoresString = prefs.getString(KEY_SCORES, "");
         if (!scoresString.isEmpty()) {
@@ -35,18 +44,20 @@ public class ScoreManager {
                 }
             }
             Collections.sort(topScores);
-            // Asegurarse de que no exceda el tamaño máximo al cargar
             while (topScores.size() > MAX_RANKING_SIZE) {
                 topScores.removeLast();
             }
         }
     }
 
+    /**
+     * Guarda las puntuaciones actuales del ranking en las preferencias del juego.
+     */
     private void saveScores() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < topScores.size(); i++) {
             ScoreEntry entry = topScores.get(i);
-            sb.append(entry.name).append(":").append(entry.score);
+            sb.append(entry.getName()).append(":").append(entry.getScore());
             if (i < topScores.size() - 1) {
                 sb.append(";");
             }
@@ -55,23 +66,36 @@ public class ScoreManager {
         prefs.flush();
     }
 
+    /**
+     * Añade una nueva puntuación al ranking, lo ordena y lo trunca si excede el tamaño máximo.
+     * @param name Nombre del jugador.
+     * @param score Puntuación obtenida.
+     */
     public void addScore(String name, int score) {
         topScores.add(new ScoreEntry(name, score));
-        Collections.sort(topScores); // Ordenar de mayor a menor
+        Collections.sort(topScores);
         while (topScores.size() > MAX_RANKING_SIZE) {
-            topScores.removeLast(); // Eliminar el más bajo si excede el límite
+            topScores.removeLast();
         }
         saveScores();
     }
 
+    /**
+     * Obtiene una copia de la lista de las mejores puntuaciones.
+     * @return LinkedList de ScoreEntry con las mejores puntuaciones.
+     */
     public LinkedList<ScoreEntry> getTopScores() {
-        return new LinkedList<>(topScores); // Devolver una copia para evitar modificaciones externas
+        return new LinkedList<>(topScores);
     }
 
+    /**
+     * Obtiene la puntuación más alta registrada.
+     * @return La puntuación más alta, o 0 si el ranking está vacío.
+     */
     public int getHighestScore() {
         if (topScores.isEmpty()) {
             return 0;
         }
-        return topScores.getFirst().score;
+        return topScores.getFirst().getScore();
     }
 }

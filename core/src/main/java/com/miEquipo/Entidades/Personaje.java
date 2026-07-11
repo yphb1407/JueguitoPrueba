@@ -6,24 +6,32 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.GdxRuntimeException; // Importar GdxRuntimeException
+import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.miEquipo.patron_states.PersonajeState;
 import com.miEquipo.patron_states.EstadoQuieto;
 
 public class Personaje implements ComponentePersonaje {
+    // --- Constants ---
+    private static final float ANIMATION_FRAME_DURATION = 0.05f;
+    private static final float JUMP_VELOCITY = 650;
+    private static final float CHARACTER_WIDTH = 64;
+    private static final float CHARACTER_HEIGHT = 64;
+    private static final String ANIM_FOLDER_REPOSO = "personaje_reposo";
+    private static final String ANIM_FOLDER_ATAQUE = "personaje_ataque";
+    private static final String LOG_TAG_ANIM_LOADER = "AnimationLoader";
+    private static final String ERROR_MSG_ANIM_LOAD_FAILED = "Error al cargar textura para %s: %s";
+    private static final String ERROR_MSG_NO_FRAMES = "CRÍTICO: No se cargaron fotogramas de animación para la carpeta: %s. ¡Verifica tus assets! Esto causará un error.";
+
     private float x, y;
     private float velocidadX, velocidadY;
     private PersonajeState estadoActual;
 
-    // Animaciones
     private Animation<TextureRegion> animReposo;
     private Animation<TextureRegion> animAtaque;
     private float tiempoAnimacion = 0;
 
     private boolean atacando = false;
     private boolean mirandoDerecha = true;
-    private float ancho = 64;
-    private float alto = 64;
 
     public interface OnAtaqueFinalizado {
         void alFinalizar();
@@ -39,8 +47,8 @@ public class Personaje implements ComponentePersonaje {
     }
 
     private void cargarAnimaciones() {
-        animReposo = crearAnimacionDesdeCarpeta("personaje_reposo", 0.05f, Animation.PlayMode.LOOP);
-        animAtaque = crearAnimacionDesdeCarpeta("personaje_ataque", 0.05f, Animation.PlayMode.NORMAL);
+        animReposo = crearAnimacionDesdeCarpeta(ANIM_FOLDER_REPOSO, ANIMATION_FRAME_DURATION, Animation.PlayMode.LOOP);
+        animAtaque = crearAnimacionDesdeCarpeta(ANIM_FOLDER_ATAQUE, ANIMATION_FRAME_DURATION, Animation.PlayMode.NORMAL);
     }
 
     private Animation<TextureRegion> crearAnimacionDesdeCarpeta(String carpeta, float frameDuration, Animation.PlayMode mode) {
@@ -48,12 +56,10 @@ public class Personaje implements ComponentePersonaje {
         int i = 1;
         String expectedFormat;
 
-        // Determinar el formato esperado del nombre de archivo basado en la carpeta
-        // Asumimos que ataque usa 01, 02... y reposo usa 1, 2...
-        if (carpeta.equals("personaje_ataque")) {
-            expectedFormat = "%02d.png"; // Ej: 01.png, 02.png, ..., 10.png
+        if (carpeta.equals(ANIM_FOLDER_ATAQUE)) {
+            expectedFormat = "%02d.png";
         } else {
-            expectedFormat = "%d.png"; // Ej: 1.png, 2.png, ..., 29.png
+            expectedFormat = "%d.png";
         }
 
         while (true) {
@@ -63,16 +69,12 @@ public class Personaje implements ComponentePersonaje {
             if (Gdx.files.internal(ruta).exists()) {
                 try {
                     frames.add(new TextureRegion(new Texture(ruta)));
-                    Gdx.app.log("AnimationLoader", "Cargado frame: " + ruta);
+                    Gdx.app.log(LOG_TAG_ANIM_LOADER, "Cargado frame: " + ruta);
                 } catch (GdxRuntimeException e) {
-                    // Captura errores como "Image not of any known type, or corrupt"
-                    Gdx.app.error("AnimationLoader", "Error al cargar textura para " + ruta + ": " + e.getMessage());
-                    // Si una textura está corrupta o es inválida, detenemos la carga de esta animación.
+                    Gdx.app.error(LOG_TAG_ANIM_LOADER, String.format(ERROR_MSG_ANIM_LOAD_FAILED, ruta, e.getMessage()));
                     break;
                 }
             } else {
-                // Si no encuentra el archivo con el formato esperado, intenta con el otro formato
-                // Esto es útil si hay inconsistencias en los nombres (ej. 1.png en carpeta de ataque)
                 String alternateFormat = (expectedFormat.equals("%02d.png")) ? "%d.png" : "%02d.png";
                 String alternateFileName = String.format(alternateFormat, i);
                 String alternateRuta = carpeta + "/" + alternateFileName;
@@ -80,22 +82,22 @@ public class Personaje implements ComponentePersonaje {
                 if (Gdx.files.internal(alternateRuta).exists()) {
                     try {
                         frames.add(new TextureRegion(new Texture(alternateRuta)));
-                        Gdx.app.log("AnimationLoader", "Cargado frame (formato alternativo): " + alternateRuta);
+                        Gdx.app.log(LOG_TAG_ANIM_LOADER, "Cargado frame (formato alternativo): " + alternateRuta);
                     } catch (GdxRuntimeException e) {
-                        Gdx.app.error("AnimationLoader", "Error al cargar textura para " + alternateRuta + ": " + e.getMessage());
+                        Gdx.app.error(LOG_TAG_ANIM_LOADER, String.format(ERROR_MSG_ANIM_LOAD_FAILED, alternateRuta, e.getMessage()));
                         break;
                     }
                 } else {
-                    Gdx.app.log("AnimationLoader", "Archivo no encontrado: " + ruta + " ni " + alternateRuta + ". Deteniendo carga para carpeta " + carpeta);
-                    break; // Ningún formato encontrado, detener
+                    Gdx.app.log(LOG_TAG_ANIM_LOADER, "Archivo no encontrado: " + ruta + " ni " + alternateRuta + ". Deteniendo carga para carpeta " + carpeta);
+                    break;
                 }
             }
             i++;
         }
 
         if (frames.size == 0) {
-            Gdx.app.error("AnimationLoader", "CRÍTICO: No se cargaron fotogramas de animación para la carpeta: " + carpeta + ". ¡Verifica tus assets! Esto causará un error.");
-            throw new GdxRuntimeException("No se encontraron fotogramas de animación para la carpeta: " + carpeta + ". Asegúrate de que los archivos existan y sean PNGs válidos.");
+            Gdx.app.error(LOG_TAG_ANIM_LOADER, String.format(ERROR_MSG_NO_FRAMES, carpeta));
+            throw new GdxRuntimeException(String.format(ERROR_MSG_NO_FRAMES, carpeta));
         }
 
         Animation<TextureRegion> anim = new Animation<>(frameDuration, frames);
@@ -127,12 +129,16 @@ public class Personaje implements ComponentePersonaje {
         }
     }
 
+    /**
+     * Inicia la animación de ataque del personaje.
+     * @param listener Un callback que se ejecuta cuando la animación de ataque finaliza.
+     */
     public void iniciarAtaque(OnAtaqueFinalizado listener) {
         if (!atacando) {
             this.atacando = true;
             this.tiempoAnimacion = 0;
             this.listenerAtaque = listener;
-            this.velocidadX = 0;
+            this.velocidadX = 0; // Detener movimiento horizontal durante el ataque
         }
     }
 
@@ -149,7 +155,7 @@ public class Personaje implements ComponentePersonaje {
             if (!mirandoDerecha && !frameActual.isFlipX()) frameActual.flip(true, false);
             if (mirandoDerecha && frameActual.isFlipX()) frameActual.flip(true, false);
 
-            batch.draw(frameActual, x, y, ancho, alto);
+            batch.draw(frameActual, x, y, CHARACTER_WIDTH, CHARACTER_HEIGHT);
         }
     }
 
@@ -160,5 +166,6 @@ public class Personaje implements ComponentePersonaje {
     @Override public void setY(float y) { this.y = y; }
     @Override public float getVelocidadY() { return velocidadY; }
     @Override public void setVelocidadY(float vy) { this.velocidadY = vy; }
+    @Override public float getVelocidadX() { return velocidadX; } // Added getter
     @Override public void setVelocidadX(float vx) { this.velocidadX = vx; }
 }

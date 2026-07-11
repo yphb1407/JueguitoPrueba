@@ -19,5 +19,7 @@ public abstract class PersonajeDecorator implements ComponentePersonaje {
     @Override public void setY(float y) { personajeDecorado.setY(y); }
     @Override public float getVelocidadY() { return personajeDecorado.getVelocidadY(); }
     @Override public void setVelocidadY(float vy) { personajeDecorado.setVelocidadY(vy); }
+    @Override public float getVelocidadX() { return personajeDecorado.getVelocidadX(); } // Added
     @Override public void setVelocidadX(float vx) { personajeDecorado.setVelocidadX(vx); }
+    @Override public boolean isMirandoDerecha() { return personajeDecorado.isMirandoDerecha(); }
 }

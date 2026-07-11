@@ -11,21 +11,51 @@ import com.miEquipo.screens.MenuScreen;
  * Es responsable de inicializar y disponer de recursos globales como SpriteBatch y BitmapFont.
  */
 public class MyGdxGame extends Game {
-    public SpriteBatch batch;
-    public BitmapFont font;
-    public ScoreManager scoreManager;
+    private SpriteBatch batch;
+    private BitmapFont font;
+    private ScoreManager scoreManager;
 
+    /**
+     * Se llama cuando la aplicación es creada. Inicializa recursos globales y establece la pantalla inicial.
+     */
     @Override
     public void create() {
         batch = new SpriteBatch();
-        font = new BitmapFont(); // Inicializa la fuente por defecto
+        font = new BitmapFont();
         scoreManager = new ScoreManager();
-        this.setScreen(new MenuScreen(this)); // Establece la pantalla inicial como el menú
+        this.setScreen(new MenuScreen(this));
     }
 
+    /**
+     * Obtiene el SpriteBatch global del juego.
+     * @return El SpriteBatch.
+     */
+    public SpriteBatch getBatch() {
+        return batch;
+    }
+
+    /**
+     * Obtiene la BitmapFont global del juego.
+     * @return La BitmapFont.
+     */
+    public BitmapFont getFont() {
+        return font;
+    }
+
+    /**
+     * Obtiene el ScoreManager global del juego.
+     * @return El ScoreManager.
+     */
+    public ScoreManager getScoreManager() {
+        return scoreManager;
+    }
+
+    /**
+     * Se llama cuando la aplicación se cierra. Dispone de los recursos globales.
+     */
     @Override
     public void dispose() {
-        super.dispose(); // Llama al dispose de la pantalla actual
+        super.dispose();
         batch.dispose();
         font.dispose();
     }

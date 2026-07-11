@@ -11,27 +11,41 @@ import com.miEquipo.mygame.MyGdxGame;
 
 import java.util.LinkedList;
 
+/**
+ * Pantalla que muestra el ranking de las mejores puntuaciones del juego.
+ */
 public class RankScreen implements Screen {
     private final MyGdxGame game;
     private SpriteBatch batch;
     private BitmapFont font;
     private LinkedList<ScoreEntry> topScores;
 
+    /**
+     * Constructor de RankScreen.
+     * @param game La instancia principal de MyGdxGame.
+     */
     public RankScreen(MyGdxGame game) {
         this.game = game;
-        this.batch = game.batch;
-        this.font = game.font;
-        this.topScores = game.scoreManager.getTopScores();
+        this.batch = game.getBatch();
+        this.font = game.getFont();
+        this.topScores = game.getScoreManager().getTopScores();
     }
 
+    /**
+     * Se llama cuando esta pantalla se convierte en la pantalla actual de Game.
+     */
     @Override
     public void show() {
-        // Se llama cuando esta pantalla se convierte en la pantalla actual de Game
+        // No se requiere implementación específica al mostrar la pantalla.
     }
 
+    /**
+     * Lógica de renderizado de la pantalla de ranking.
+     * @param delta El tiempo transcurrido desde el último frame.
+     */
     @Override
     public void render(float delta) {
-        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f); // Fondo oscuro para el ranking
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         batch.begin();
@@ -44,12 +58,11 @@ public class RankScreen implements Screen {
         float yPos = Gdx.graphics.getHeight() - 150;
         int rank = 1;
         for (ScoreEntry entry : topScores) {
-            font.draw(batch, rank + ". " + entry.name + " - " + entry.score, Gdx.graphics.getWidth() / 2f - 100, yPos);
+            font.draw(batch, rank + ". " + entry.getName() + " - " + entry.getScore(), Gdx.graphics.getWidth() / 2f - 100, yPos);
             yPos -= 40;
             rank++;
         }
 
-        // Rellenar con "---" si hay menos de 5 entradas
         while (rank <= 5) {
             font.draw(batch, rank + ". ---", Gdx.graphics.getWidth() / 2f - 100, yPos);
             yPos -= 40;
@@ -68,7 +81,6 @@ public class RankScreen implements Screen {
             float touchX = Gdx.input.getX();
             float touchY = Gdx.graphics.getHeight() - Gdx.input.getY();
 
-            // Detectar toque en "Volver al Menú"
             if (touchX > backButtonX && touchX < backButtonX + 160 && touchY > backButtonY - 20 && touchY < backButtonY + 10) {
                 game.setScreen(new MenuScreen(game));
                 dispose();
@@ -76,24 +88,41 @@ public class RankScreen implements Screen {
         }
     }
 
+    /**
+     * Se llama cuando la ventana del juego cambia de tamaño.
+     * @param width Nuevo ancho de la ventana.
+     * @param height Nueva altura de la ventana.
+     */
     @Override
     public void resize(int width, int height) {
     }
 
+    /**
+     * Se llama cuando el juego es pausado.
+     */
     @Override
     public void pause() {
     }
 
+    /**
+     * Se llama cuando el juego es reanudado.
+     */
     @Override
     public void resume() {
     }
 
+    /**
+     * Se llama cuando esta pantalla deja de ser la pantalla actual de Game.
+     */
     @Override
     public void hide() {
     }
 
+    /**
+     * Libera los recursos utilizados por esta pantalla.
+     */
     @Override
     public void dispose() {
-        // No se dispone de batch ni font aquí, ya que son gestionados por MyGdxGame
+        // Los recursos de batch y font son gestionados por MyGdxGame, no se disponen aquí.
     }
 }
