@@ -89,6 +89,15 @@ public class MenuScreen implements Screen {
         float rankY = Gdx.graphics.getHeight() / 2f - 50;
         font.draw(batch, rankText, rankX, rankY);
 
+        String tiledMapText = "PROBAR MAPA TILED";
+        layout.setText(font, tiledMapText);
+        float tiledMapWidth = layout.width;
+        float tiledMapHeight = layout.height;
+        float tiledMapX = Gdx.graphics.getWidth() / 2f - tiledMapWidth / 2;
+        float tiledMapY = Gdx.graphics.getHeight() / 2f - 150; // Posicionado debajo de RANK
+        font.draw(batch, tiledMapText, tiledMapX, tiledMapY);
+
+
         batch.end();
 
         if (Gdx.input.justTouched()) {
@@ -100,6 +109,9 @@ public class MenuScreen implements Screen {
                 dispose();
             } else if (touchX > rankX && touchX < rankX + rankWidth && touchY > rankY - rankHeight && touchY < rankY) {
                 game.setScreen(new RankScreen(game));
+                dispose();
+            } else if (touchX > tiledMapX && touchX < tiledMapX + tiledMapWidth && touchY > tiledMapY - tiledMapHeight && touchY < tiledMapY) {
+                game.setScreen(new TiledMapScreen(game)); // Nueva pantalla para el mapa Tiled
                 dispose();
             }
         }

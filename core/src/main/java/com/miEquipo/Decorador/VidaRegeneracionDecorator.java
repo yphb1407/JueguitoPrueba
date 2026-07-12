@@ -89,6 +89,21 @@ public class VidaRegeneracionDecorator extends PersonajeDecorator {
         }
     }
 
+    @Override
+    public void setX(float x) {
+
+    }
+
+    @Override
+    public float getWidth() {
+        return 0;
+    }
+
+    @Override
+    public float getHeight() {
+        return 0;
+    }
+
     /**
      * Indica si el efecto de regeneración ha terminado.
      * @return true si el efecto ha terminado, false en caso contrario.

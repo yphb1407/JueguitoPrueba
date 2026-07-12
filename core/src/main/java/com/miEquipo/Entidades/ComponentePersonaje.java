@@ -33,6 +33,12 @@ public interface ComponentePersonaje {
     float getX();
 
     /**
+     * Establece la posición X del personaje.
+     * @param x La nueva coordenada X del personaje.
+     */
+    void setX(float x); // Añadido para permitir el ajuste de posición en colisiones
+
+    /**
      * Obtiene la posición Y actual del personaje.
      * @return La coordenada Y del personaje.
      */
@@ -60,7 +66,7 @@ public interface ComponentePersonaje {
      * Obtiene la velocidad actual del personaje en el eje X.
      * @return La velocidad en X del personaje.
      */
-    float getVelocidadX(); // Added for consistency
+    float getVelocidadX();
 
     /**
      * Establece la velocidad del personaje en el eje X.
@@ -73,4 +79,16 @@ public interface ComponentePersonaje {
      * @return true si el personaje mira a la derecha, false si mira a la izquierda.
      */
     boolean isMirandoDerecha();
+
+    /**
+     * Obtiene el ancho del personaje.
+     * @return El ancho del personaje.
+     */
+    float getWidth(); // Añadido
+
+    /**
+     * Obtiene el alto del personaje.
+     * @return El alto del personaje.
+     */
+    float getHeight(); // Añadido
 }
