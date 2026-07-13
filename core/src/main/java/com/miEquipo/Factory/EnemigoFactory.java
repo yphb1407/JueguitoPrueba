@@ -1,70 +1,81 @@
 package com.miEquipo.Factory;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.miEquipo.Entidades.Enemigo;
 import com.miEquipo.Entidades.EnemigoCaminante;
-import java.util.HashMap;
-import java.util.Map;
+import com.badlogic.gdx.utils.Disposable; // Import Disposable
 
 /**
- * Fábrica para crear instancias de enemigos utilizando el patrón Prototype.
- * Permite la creación eficiente de enemigos clonando prototipos predefinidos.
+ * Fábrica para crear instancias de enemigos.
+ * Ahora gestiona la creación de enemigos que requieren información del mapa.
  */
-public class EnemigoFactory {
+public class EnemigoFactory implements Disposable { // Implement Disposable
     private static final String ENEMY_TYPE_GOOMBA = "goomba";
     private static final float DEFAULT_ENEMY_SPEED = -100f;
 
-    // Mapa de prototipos de enemigos
-    private static final Map<String, Enemigo> prototypes = new HashMap<>();
+    // Map parameters to be passed to enemy constructors
+    private final TiledMap map;
+    private final TiledMapTileLayer collisionLayer;
+    private final int tileWidth;
+    private final int tileHeight;
 
-    // Inicializa los prototipos en un bloque estático
-    static {
-        // Aquí se pueden añadir diferentes tipos de enemigos como prototipos
-        // Por ejemplo, un "goomba" base
-        prototypes.put(ENEMY_TYPE_GOOMBA, new EnemigoCaminante());
+    /**
+     * Constructor para EnemigoFactory.
+     * @param map El TiledMap del juego.
+     * @param collisionLayer La capa de colisión del TiledMap.
+     * @param tileWidth El ancho de los tiles del mapa.
+     * @param tileHeight El alto de los tiles del mapa.
+     */
+    public EnemigoFactory(TiledMap map, TiledMapTileLayer collisionLayer, int tileWidth, int tileHeight) {
+        this.map = map;
+        this.collisionLayer = collisionLayer;
+        this.tileWidth = tileWidth;
+        this.tileHeight = tileHeight;
     }
 
     /**
      * Crea una nueva instancia de Enemigo del tipo especificado,
-     * clonando un prototipo y configurando su posición y velocidad.
+     * configurando su posición y velocidad.
      * @param tipo El tipo de enemigo a crear (ej. "goomba").
      * @param x La coordenada X inicial del enemigo.
      * @param y La coordenada Y inicial del enemigo.
      * @param velX La velocidad inicial en el eje X del enemigo.
      * @return Una nueva instancia de Enemigo, o null si el tipo no es reconocido.
      */
-    public static Enemigo crearEnemigo(String tipo, float x, float y, float velX) {
-        Enemigo prototype = prototypes.get(tipo);
-        if (prototype != null) {
-            Enemigo newEnemy = prototype.clone();
-            newEnemy.setPosicion(x, y);
-            newEnemy.velocidadX = velX;
-            return newEnemy;
+    public Enemigo crearEnemigo(String tipo, float x, float y, float velX) {
+        switch (tipo) {
+            case ENEMY_TYPE_GOOMBA:
+                // Directamente instanciamos, pasando los parámetros del mapa
+                return new EnemigoCaminante(x, y, velX, map, collisionLayer, tileWidth, tileHeight);
+            default:
+                Gdx.app.error("EnemigoFactory", "Tipo de enemigo no reconocido: " + tipo);
+                return null;
         }
-        Gdx.app.error("EnemigoFactory", "Tipo de enemigo no reconocido: " + tipo);
-        return null;
     }
 
     /**
      * Crea una nueva instancia de Enemigo del tipo especificado,
-     * clonando un prototipo y configurando su posición con una velocidad por defecto.
+     * configurando su posición con una velocidad por defecto.
      * @param tipo El tipo de enemigo a crear (ej. "goomba").
      * @param x La coordenada X inicial del enemigo.
      * @param y La coordenada Y inicial del enemigo.
      * @return Una nueva instancia de Enemigo, o null si el tipo no es reconocido.
      */
-    public static Enemigo crearEnemigo(String tipo, float x, float y) {
+    public Enemigo crearEnemigo(String tipo, float x, float y) {
         return crearEnemigo(tipo, x, y, DEFAULT_ENEMY_SPEED);
     }
 
     /**
-     * Libera los recursos de todos los prototipos de enemigos.
-     * Debe llamarse al finalizar el juego para evitar fugas de memoria.
+     * Libera los recursos de la fábrica.
+     * En este diseño, la fábrica no posee recursos Disposable directamente,
+     * pero si se añadieran prototipos que sí los tuvieran, se liberarían aquí.
+     * Por ahora, no hay nada que liberar directamente en la fábrica.
      */
-    public static void disposeAll() {
-        for (Enemigo enemy : prototypes.values()) {
-            enemy.disposeTexture(); // Llamamos a disposeTexture() en lugar de dispose()
-        }
-        prototypes.clear();
+    @Override
+    public void dispose() {
+        // No hay prototipos estáticos que liberar en este nuevo diseño.
+        // Los enemigos individuales se liberan a través de EntityManager.
     }
 }

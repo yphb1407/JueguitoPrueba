@@ -11,7 +11,6 @@ import com.miEquipo.Decorador.VidaRegeneracionDecorator;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 /**
  * Gestiona el ciclo de vida (actualización, renderizado, colisiones) de las entidades del juego
  * como enemigos, proyectiles, ítems de regeneración y textos flotantes.
@@ -31,12 +30,10 @@ public class EntityManager implements Disposable {
     private static final String TEXT_SCORE_GAIN = "+100";
     private static final String TEXT_ITEM_COLLECTED = "Item recogido";
 
-
     private final List<Enemigo> enemigos;
     private final List<Proyectil> proyectiles;
     private final List<TextoFlotante> textos;
     private final List<ItemRegeneracion> items;
-
     /**
      * Interfaz de callback para que EntityManager notifique a su "dueño" (ej. PartidaFacade)
      * sobre interacciones importantes que afectan el estado del juego.
@@ -48,9 +45,7 @@ public class EntityManager implements Disposable {
         void onNewFloatingText(TextoFlotante text);
         void onPlayerComponentChanged(ComponentePersonaje newPlayerComponent); // When a decorator is applied
     }
-
     private EntityManagerCallback callback;
-
     public EntityManager(EntityManagerCallback callback) {
         this.enemigos = new ArrayList<>();
         this.proyectiles = new ArrayList<>();
@@ -78,15 +73,15 @@ public class EntityManager implements Disposable {
     /**
      * Actualiza el estado de todas las entidades gestionadas.
      * @param delta El tiempo transcurrido desde el último frame.
-     * @param groundY La coordenada Y del suelo para entidades que interactúan con él.
      * @param personaje El componente del personaje principal para detección de colisiones.
+     * @param worldWidth El ancho del mundo del juego para la lógica de despawn.
      */
-    public void update(float delta, float groundY, ComponentePersonaje personaje) {
+    public void update(float delta, ComponentePersonaje personaje, float worldWidth) { // Added worldWidth parameter
         // Actualizar ítems
         Iterator<ItemRegeneracion> itI = items.iterator();
         while (itI.hasNext()) {
             ItemRegeneracion item = itI.next();
-            item.actualizar(delta, groundY);
+            item.actualizar(delta, 0); // groundY is no longer passed, items will need to handle their own collision or fall
             // Asumiendo un tamaño de caja de colisión de 64x64 para el personaje
             if (item.colisiona(personaje.getX(), personaje.getY(), 64, 64)) {
                 if (callback != null) {
@@ -141,8 +136,8 @@ public class EntityManager implements Disposable {
         while (itE.hasNext()) {
             Enemigo e = itE.next();
             e.actualizar(delta);
-            e.setPosicion(e.getX(), groundY);
-            if (Math.abs(e.getX() - personaje.getX()) < ENEMY_PLAYER_COLLISION_THRESHOLD_X && Math.abs(personaje.getY() - groundY) < ENEMY_PLAYER_COLLISION_THRESHOLD_Y) {
+            // e.setPosicion(e.getX(), groundY); // Removed this line
+            if (Math.abs(e.getX() - personaje.getX()) < ENEMY_PLAYER_COLLISION_THRESHOLD_X && Math.abs(personaje.getY() - e.getY()) < ENEMY_PLAYER_COLLISION_THRESHOLD_Y) { // Changed groundY to e.getY()
                 if (callback != null) {
                     callback.onPlayerDamaged(PLAYER_DAMAGE_VALUE);
                     callback.onNewFloatingText(
@@ -151,10 +146,11 @@ public class EntityManager implements Disposable {
                 }
                 e.dispose();
                 itE.remove();
-            } else if (e.getX() < -ENEMY_DESPAWN_OFFSET || e.getX() > Gdx.graphics.getWidth() + ENEMY_DESPAWN_OFFSET) {
-                e.dispose();
-                itE.remove();
             }
+            // else if (e.getX() < -ENEMY_DESPAWN_OFFSET || e.getX() > worldWidth + ENEMY_DESPAWN_OFFSET) { // Comentado temporalmente para depuración
+            //     e.dispose();
+            //     itE.remove();
+            // }
         }
 
         // Actualizar textos flotantes

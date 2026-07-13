@@ -19,7 +19,7 @@ public class Personaje implements ComponentePersonaje, Disposable { // Implement
     private static final float CHARACTER_HEIGHT = 150;
     private static final String ANIM_FOLDER_REPOSO = "personaje_reposo";
     private static final String ANIM_FOLDER_ATAQUE = "personaje_ataque";
-    private static final String LOG_TAG_ANIM_LOADER = "AnimationLoader";
+    private static final String LOG_TAG_ANIM_LOADER = "AnimationLoader"; // Corregido el typo aquí
     private static final String ERROR_MSG_ANIM_LOAD_FAILED = "Error al cargar textura para %s: %s";
     private static final String ERROR_MSG_NO_FRAMES = "CRÍTICO: No se cargaron fotogramas de animación para la carpeta: %s. ¡Verifica tus assets! Esto causará un error.";
 
@@ -97,7 +97,7 @@ public class Personaje implements ComponentePersonaje, Disposable { // Implement
                         break;
                     }
                 } else {
-                    Gdx.app.log(LOG_TAG_ANIM_LOADER, "Archivo no encontrado: " + ruta + " ni " + alternateRuta + ". Deteniendo carga para carpeta " + carpeta);
+                    Gdx.app.log(LOG_TAG_ANIM_LOADER, "Archivo no encontrado: " + ruta + " ni " + alternateRuta + ". Deteniendo carga para carpeta " + carpeta); // Corregido el typo aquí
                     break;
                 }
             }
@@ -150,6 +150,25 @@ public class Personaje implements ComponentePersonaje, Disposable { // Implement
             this.listenerAtaque = listener;
             this.velocidadX = 0; // Detener movimiento horizontal durante el ataque
         }
+    }
+
+    /**
+     * Crea y devuelve un nuevo proyectil disparado por el personaje.
+     * @param worldWidth El ancho del mundo del juego para que el proyectil sepa cuándo desactivarse.
+     * @return Una nueva instancia de Proyectil.
+     */
+    public Proyectil lanzarProyectil(float worldWidth) {
+        float proyectilX;
+        // Posicionar el proyectil a un lado del personaje
+        if (mirandoDerecha) {
+            proyectilX = x + CHARACTER_WIDTH;
+        } else {
+            proyectilX = x - Proyectil.WIDTH; // Restar el ancho del proyectil para que no aparezca dentro del personaje
+        }
+        // Centrar el proyectil verticalmente con el personaje
+        float proyectilY = y + (CHARACTER_HEIGHT / 2) - (Proyectil.HEIGHT / 2);
+
+        return new Proyectil(proyectilX, proyectilY, mirandoDerecha, worldWidth);
     }
 
     @Override

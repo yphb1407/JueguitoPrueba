@@ -89,13 +89,14 @@ public class MenuScreen implements Screen {
         float rankY = Gdx.graphics.getHeight() / 2f - 50;
         font.draw(batch, rankText, rankX, rankY);
 
-        String tiledMapText = "PROBAR MAPA TILED";
-        layout.setText(font, tiledMapText);
-        float tiledMapWidth = layout.width;
-        float tiledMapHeight = layout.height;
-        float tiledMapX = Gdx.graphics.getWidth() / 2f - tiledMapWidth / 2;
-        float tiledMapY = Gdx.graphics.getHeight() / 2f - 150; // Posicionado debajo de RANK
-        font.draw(batch, tiledMapText, tiledMapX, tiledMapY);
+        // Eliminada la opción "PROBAR MAPA TILED"
+        // String tiledMapText = "PROBAR MAPA TILED";
+        // layout.setText(font, tiledMapText);
+        // float tiledMapWidth = layout.width;
+        // float tiledMapHeight = layout.height;
+        // float tiledMapX = Gdx.graphics.getWidth() / 2f - tiledMapWidth / 2;
+        // float tiledMapY = Gdx.graphics.getHeight() / 2f - 150;
+        // font.draw(batch, tiledMapText, tiledMapX, tiledMapY);
 
 
         batch.end();
@@ -105,15 +106,17 @@ public class MenuScreen implements Screen {
             float touchY = Gdx.graphics.getHeight() - Gdx.input.getY();
 
             if (touchX > jugarX && touchX < jugarX + jugarWidth && touchY > jugarY - jugarHeight && touchY < jugarY) {
-                game.setScreen(new GameScreen(game));
+                game.setScreen(new TiledMapScreen(game)); // Ahora inicia TiledMapScreen
                 dispose();
             } else if (touchX > rankX && touchX < rankX + rankWidth && touchY > rankY - rankHeight && touchY < rankY) {
                 game.setScreen(new RankScreen(game));
                 dispose();
-            } else if (touchX > tiledMapX && touchX < tiledMapX + tiledMapWidth && touchY > tiledMapY - tiledMapHeight && touchY < tiledMapY) {
-                game.setScreen(new TiledMapScreen(game)); // Nueva pantalla para el mapa Tiled
-                dispose();
             }
+            // Eliminada la condición para "PROBAR MAPA TILED"
+            // else if (touchX > tiledMapX && touchX < tiledMapX + tiledMapWidth && touchY > tiledMapY - tiledMapHeight && touchY < tiledMapY) {
+            //     game.setScreen(new TiledMapScreen(game));
+            //     dispose();
+            // }
         }
     }
 
