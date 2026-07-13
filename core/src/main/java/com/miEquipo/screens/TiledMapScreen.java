@@ -6,27 +6,46 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.miEquipo.mygame.MyGdxGame;
 import com.badlogic.gdx.Input;
 import com.miEquipo.Entidades.Personaje;
+import com.miEquipo.Entidades.Enemigo;
+import com.miEquipo.Entidades.Proyectil;
+import com.miEquipo.Entidades.TextoFlotante; // Importar TextoFlotante
+import com.miEquipo.Entidades.ComponentePersonaje; // Importar ComponentePersonaje
+import com.miEquipo.Factory.EnemigoFactory;
 import com.miEquipo.patron_states.EstadoQuieto;
+import com.miEquipo.mapas.Mapa_padre;
+import com.miEquipo.managers.EntityManager; // Importar EntityManager
+import com.badlogic.gdx.graphics.g2d.BitmapFont; // Importar BitmapFont
 
-public class TiledMapScreen implements Screen {
+import java.util.Iterator;
+
+public class TiledMapScreen implements Screen, EntityManager.EntityManagerCallback { // Implementar la interfaz
 
     private final MyGdxGame game;
-    private TiledMap map;
+    private Mapa_padre mapa;
+    private TiledMap tiledMap;
     private OrthogonalTiledMapRenderer renderer;
     private OrthographicCamera camera;
 
-    // Player variables (now using Personaje class)
+    // Player variables
     private Personaje personaje;
-    private float playerSpeed = 400; // Pixels por segundo (ajustado para tiles de 100x100)
-    private float gravity = -1000f; // Gravedad (ajustada)
-    private float JUMP_FORCE = 2000f; // Fuerza del salto (ajustada)
-    private boolean onGround; // Indica si el jugador está en el suelo
+    private float playerSpeed;
+    private float gravity;
+    private float JUMP_FORCE;
+    private boolean onGround;
+
+    // Enemy variables
+    private Array<Enemigo> enemigos;
+    private Array<Vector2> originalEnemySpawnPoints;
+
+    // Projectile variables
+    private Array<Proyectil> proyectiles;
 
     // Map properties
     private int tileWidth;
@@ -36,37 +55,70 @@ public class TiledMapScreen implements Screen {
     private int mapWidthInPixels;
     private int mapHeightInPixels;
 
-    public TiledMapScreen(MyGdxGame game) {
+    // EntityManager
+    private EntityManager entityManager;
+
+    // Constructor
+    public TiledMapScreen(MyGdxGame game, Mapa_padre mapa) {
         this.game = game;
+        this.mapa = mapa;
     }
 
     @Override
     public void show() {
-        // Cargar el mapa Tiled
-        map = new TmxMapLoader().load("mapa/segundo_intento_de_mapa.tmx");
+        mapa.load();
 
-        // Configurar el renderer
-        renderer = new OrthogonalTiledMapRenderer(map);
+        tiledMap = mapa.getTiledMap();
+        renderer = new OrthogonalTiledMapRenderer(tiledMap);
 
-        // Obtener propiedades del mapa
-        tileWidth = map.getProperties().get("tilewidth", Integer.class);
-        tileHeight = map.getProperties().get("tileheight", Integer.class);
-        mapWidthInTiles = map.getProperties().get("width", Integer.class);
-        mapHeightInTiles = map.getProperties().get("height", Integer.class);
-        mapWidthInPixels = mapWidthInTiles * tileWidth; // 30 * 100 = 3000
-        mapHeightInPixels = mapHeightInTiles * tileHeight; // 20 * 100 = 2000
+        tileWidth = mapa.getTileWidth();
+        tileHeight = mapa.getTileHeight();
+        mapWidthInTiles = mapa.getMapWidthInTiles();
+        mapHeightInTiles = mapa.getMapHeightInTiles();
+        mapWidthInPixels = mapa.getMapWidthInPixels();
+        mapHeightInPixels = mapa.getMapHeightInPixels();
 
-        // Configurar la cámara
         camera = new OrthographicCamera();
-        // El viewport de la cámara será del tamaño exacto del mapa en píxeles
         camera.setToOrtho(false, mapWidthInPixels, mapHeightInPixels);
         camera.update();
 
-        // Inicializar el personaje
-        personaje = new Personaje(300, 300); // Posición inicial
-        personaje.setEstado(new EstadoQuieto()); // Asegurarse de que tenga un estado inicial
-        onGround = false; // Asumimos que no está en el suelo al inicio hasta que se verifique
+        playerSpeed = mapa.getPlayerSpeed();
+        gravity = mapa.getGravity();
+        JUMP_FORCE = mapa.getJumpForce();
+
+        personaje = mapa.createPlayer();
+        onGround = false;
+
+        enemigos = new Array<>();
+        originalEnemySpawnPoints = mapa.getEnemySpawnPoints();
+        loadInitialEnemies();
+
+        proyectiles = new Array<>();
+
+        // Inicializar EntityManager, pasándose a sí mismo como callback
+        entityManager = new EntityManager(this);
+        // Aquí podrías añadir ítems de regeneración si los tuvieras definidos en el mapa o de otra forma
+        // Por ejemplo: entityManager.addItem(new ItemRegeneracion(100, 100));
     }
+
+    private void loadInitialEnemies() {
+        if (originalEnemySpawnPoints.size == 0) {
+            Gdx.app.log("TiledMapScreen", "No se encontraron puntos de aparición de enemigos en el mapa.");
+            return;
+        }
+
+        for (Vector2 spawnPoint : originalEnemySpawnPoints) {
+            spawnNewEnemy(spawnPoint);
+        }
+    }
+
+    private void spawnNewEnemy(Vector2 spawnPoint) {
+        Enemigo enemigo = EnemigoFactory.crearEnemigo("goomba", spawnPoint.x, spawnPoint.y, -100f);
+        if (enemigo != null) {
+            enemigos.add(enemigo);
+        }
+    }
+
 
     @Override
     public void render(float delta) {
@@ -83,11 +135,19 @@ public class TiledMapScreen implements Screen {
         }
         personaje.setVelocidadX(currentVelX);
 
+        // Disparar proyectil
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+            Proyectil nuevoProyectil = personaje.disparar();
+            if (nuevoProyectil != null) {
+                proyectiles.add(nuevoProyectil);
+            }
+        }
+
         // --- Apply Gravity and Jump ---
         personaje.setVelocidadY(personaje.getVelocidadY() + gravity * delta);
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && onGround) {
             personaje.setVelocidadY(JUMP_FORCE);
-            onGround = false; // El jugador ya no está en el suelo al saltar
+            onGround = false;
         }
 
         // --- Store Old Position ---
@@ -99,22 +159,19 @@ public class TiledMapScreen implements Screen {
         float newPersonajeY = personaje.getY() + personaje.getVelocidadY() * delta;
 
         // --- Horizontal Movement and Collision ---
-        personaje.setX(newPersonajeX); // Mover horizontalmente
-        // Clamp a los límites del mapa (horizontal)
+        personaje.setX(newPersonajeX);
         if (personaje.getX() < 0) personaje.setX(0);
         if (personaje.getX() > mapWidthInPixels - personaje.getWidth())
             personaje.setX(mapWidthInPixels - personaje.getWidth());
 
         Rectangle playerBounds = new Rectangle(personaje.getX(), personaje.getY(), personaje.getWidth(), personaje.getHeight());
-        if (collidesWithMap(playerBounds, map, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles)) {
-            // Colisión detectada horizontalmente
-            personaje.setX(oldPersonajeX); // Revertir a la posición X anterior
-            personaje.setVelocidadX(0); // Detener movimiento horizontal
+        if (collidesWithMap(playerBounds, tiledMap, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles)) {
+            personaje.setX(oldPersonajeX);
+            personaje.setVelocidadX(0);
         }
 
         // --- Vertical Movement and Collision ---
-        personaje.setY(newPersonajeY); // Mover verticalmente
-        // Clamp a los límites del mapa (vertical)
+        personaje.setY(newPersonajeY);
         if (personaje.getY() < 0) {
             personaje.setY(0);
             personaje.setVelocidadY(0);
@@ -122,28 +179,23 @@ public class TiledMapScreen implements Screen {
         }
         if (personaje.getY() > mapHeightInPixels - personaje.getHeight()) {
             personaje.setY(mapHeightInPixels - personaje.getHeight());
-            personaje.setVelocidadY(0); // Choca con el techo
+            personaje.setVelocidadY(0);
         }
 
-        playerBounds.setPosition(personaje.getX(), personaje.getY()); // Actualizar playerBounds para la verificación vertical
-        if (collidesWithMap(playerBounds, map, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles)) {
-            // Colisión detectada verticalmente
-            personaje.setY(oldPersonajeY); // Revertir a la posición Y anterior
-            personaje.setVelocidadY(0); // Detener movimiento vertical
-            if (newPersonajeY < oldPersonajeY) { // Si el jugador estaba cayendo
+        playerBounds.setPosition(personaje.getX(), personaje.getY());
+        if (collidesWithMap(playerBounds, tiledMap, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles)) {
+            personaje.setY(oldPersonajeY);
+            personaje.setVelocidadY(0);
+            if (newPersonajeY < oldPersonajeY) {
                 onGround = true;
             }
         }
 
         // --- Final onGround check ---
-        // Esta verificación es crucial y debe hacerse después de todos los movimientos y colisiones verticales.
-        // Comprueba si hay un tile sólido directamente debajo del jugador.
         Rectangle groundCheckRect = new Rectangle(personaje.getX(), personaje.getY() - 1, personaje.getWidth(), 1);
-        onGround = collidesWithMap(groundCheckRect, map, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles);
+        onGround = collidesWithMap(groundCheckRect, tiledMap, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles);
 
         // --- Camera Update ---
-        // La cámara ya no necesita seguir al jugador ni ser "clamp", ya que muestra todo el mapa.
-        // Solo la actualizamos una vez para que se centre en el mapa.
         camera.position.set(mapWidthInPixels / 2f, mapHeightInPixels / 2f, 0);
         camera.update();
         renderer.setView(camera);
@@ -154,12 +206,91 @@ public class TiledMapScreen implements Screen {
         // Render the player
         game.getBatch().setProjectionMatrix(camera.combined);
         game.getBatch().begin();
-        personaje.dibujar(game.getBatch()); // Usar el método dibujar del Personaje
+        personaje.dibujar(game.getBatch());
+
+        // --- Update and Render Enemies (with respawn logic) ---
+        Iterator<Enemigo> enemyIterator = enemigos.iterator();
+        while (enemyIterator.hasNext()) {
+            Enemigo enemigo = enemyIterator.next();
+            enemigo.actualizar(delta, personaje.getX(), personaje.getY(), mapWidthInPixels, mapHeightInPixels);
+            enemigo.dibujar(game.getBatch());
+
+            // Player-enemy collision detection
+            Rectangle enemyRect = new Rectangle(enemigo.getX(), enemigo.getY(), enemigo.getAncho(), enemigo.getAlto());
+            if (playerBounds.overlaps(enemyRect)) {
+                entityManager.onPlayerHit(personaje.getX(), personaje.getY()); // Notificar a EntityManager
+                enemyIterator.remove(); // Eliminar el enemigo
+                // Respawnear un nuevo enemigo
+                if (originalEnemySpawnPoints.size > 0) {
+                    int randomIndex = (int) (Math.random() * originalEnemySpawnPoints.size);
+                    spawnNewEnemy(originalEnemySpawnPoints.get(randomIndex));
+                }
+                // No break, ya que el jugador podría colisionar con múltiples enemigos en un frame
+                // y queremos que todos los eventos se disparen.
+            } else if (enemigo.getX() + enemigo.getAncho() < 0 || enemigo.getX() > mapWidthInPixels) {
+                // Comprobar si el enemigo está fuera de los límites del mapa
+                enemyIterator.remove(); // Eliminar el enemigo actual
+                // Spawnear un nuevo enemigo en un punto de spawn aleatorio de los originales
+                if (originalEnemySpawnPoints.size > 0) {
+                    int randomIndex = (int) (Math.random() * originalEnemySpawnPoints.size);
+                    spawnNewEnemy(originalEnemySpawnPoints.get(randomIndex));
+                }
+            }
+        }
+
+        // --- Update and Render Projectiles (with collision logic) ---
+        Iterator<Proyectil> projectileIterator = proyectiles.iterator();
+        while (projectileIterator.hasNext()) {
+            Proyectil proyectil = projectileIterator.next();
+            proyectil.actualizar(delta);
+            proyectil.dibujar(game.getBatch());
+
+            // Colisión de proyectil con el mapa
+            Rectangle projectileBounds = new Rectangle(proyectil.getX(), proyectil.getY(), proyectil.getWidth(), proyectil.getHeight());
+            if (collidesWithMap(projectileBounds, tiledMap, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles)) {
+                proyectil.setActivo(false); // Desactivar proyectil al colisionar con el mapa
+            }
+
+            // Colisión de proyectil con enemigos
+            Iterator<Enemigo> enemyCollisionIterator = enemigos.iterator();
+            while (enemyCollisionIterator.hasNext()) {
+                Enemigo enemigo = enemyCollisionIterator.next();
+                Rectangle enemyBounds = new Rectangle(enemigo.getX(), enemigo.getY(), enemigo.getAncho(), enemigo.getAlto());
+
+                if (proyectil.isActivo() && projectileBounds.overlaps(enemyBounds)) {
+                    proyectil.setActivo(false); // Desactivar proyectil
+                    entityManager.onEnemyDefeated(enemigo.getX(), enemigo.getY()); // Notificar a EntityManager
+                    enemyCollisionIterator.remove(); // Eliminar enemigo
+                    // Respawnear un nuevo enemigo
+                    if (originalEnemySpawnPoints.size > 0) {
+                        int randomIndex = (int) (Math.random() * originalEnemySpawnPoints.size);
+                        spawnNewEnemy(originalEnemySpawnPoints.get(randomIndex));
+                    }
+                    break; // Un proyectil solo puede golpear a un enemigo a la vez
+                }
+            }
+
+            // Eliminar proyectiles inactivos
+            if (!proyectil.isActivo()) {
+                proyectil.dispose(); // Liberar recursos del proyectil
+                projectileIterator.remove();
+            }
+        }
+
         game.getBatch().end();
 
         // Update Personaje's internal state (animations, etc.)
-        // Esto ahora solo maneja la animación y el estado, no la posición.
         personaje.actualizar(delta);
+
+        // Actualizar EntityManager (para ítems y textos flotantes)
+        entityManager.update(delta, personaje);
+
+        // Renderizar entidades gestionadas por EntityManager (ítems y textos flotantes)
+        game.getBatch().setProjectionMatrix(camera.combined); // Asegurar que el batch usa la proyección de la cámara
+        game.getBatch().begin();
+        entityManager.render(game.getBatch(), game.getFont()); // Asumiendo que game.getFont() existe
+        game.getBatch().end();
+
 
         // Volver al menú principal si se presiona ESC
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -170,8 +301,7 @@ public class TiledMapScreen implements Screen {
 
     // Helper method to check if a tile ID is considered solid/collidable
     private boolean isTileSolid(int tileId) {
-        // GID 1 y 2 son los tiles de colisión según tu descripción
-        return tileId == 1 || tileId == 2;
+        return mapa.isTileSolid(tileId);
     }
 
     // Helper method to check if a rectangle collides with any solid tile in the map
@@ -180,7 +310,6 @@ public class TiledMapScreen implements Screen {
             if (map.getLayers().get(i) instanceof TiledMapTileLayer) {
                 TiledMapTileLayer layer = (TiledMapTileLayer) map.getLayers().get(i);
 
-                // Check the four corners of the rectangle for collision
                 if (checkPointCollision(rect.x, rect.y, layer, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles) ||
                     checkPointCollision(rect.x + rect.width, rect.y, layer, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles) ||
                     checkPointCollision(rect.x, rect.y + rect.height, layer, tileWidth, tileHeight, mapWidthInTiles, mapHeightInTiles) ||
@@ -197,7 +326,6 @@ public class TiledMapScreen implements Screen {
         int col = (int) (x / tileWidth);
         int row = (int) (y / tileHeight);
 
-        // Ensure the point is within map bounds
         if (col < 0 || row < 0 || col >= mapWidthInTiles || row >= mapHeightInTiles) {
             return false;
         }
@@ -206,10 +334,8 @@ public class TiledMapScreen implements Screen {
         return cell != null && isTileSolid(cell.getTile().getId());
     }
 
-
     @Override
     public void resize(int width, int height) {
-        // El viewport de la cámara será del tamaño exacto del mapa en píxeles
         camera.setToOrtho(false, mapWidthInPixels, mapHeightInPixels);
         camera.update();
     }
@@ -228,8 +354,59 @@ public class TiledMapScreen implements Screen {
 
     @Override
     public void dispose() {
-        map.dispose();
         renderer.dispose();
-        personaje.dispose(); // Dispose del personaje
+        personaje.dispose();
+        for (Enemigo enemigo : enemigos) {
+            enemigo.dispose();
+        }
+        enemigos.clear();
+        for (Proyectil proyectil : proyectiles) {
+            proyectil.dispose();
+        }
+        proyectiles.clear();
+        mapa.dispose();
+        entityManager.dispose(); // Disponer EntityManager
+    }
+
+    // --- Implementación de EntityManager.EntityManagerCallback ---
+    @Override
+    public void onPlayerDamaged(int amount) {
+        // Aquí puedes implementar la lógica para reducir la vida del personaje
+        // Por ejemplo: personaje.recibirDano(amount);
+        Gdx.app.log("TiledMapScreen", "Player damaged by: " + amount);
+        // Necesitarás una forma de manejar la vida del personaje, quizás en la clase Personaje
+        // o en una variable aquí en TiledMapScreen.
+    }
+
+    @Override
+    public void onScoreIncreased(int amount) {
+        // Aquí puedes implementar la lógica para aumentar la puntuación del jugador
+        // Por ejemplo: game.addScore(amount);
+        Gdx.app.log("TiledMapScreen", "Score increased by: " + amount);
+        // Necesitarás una variable de puntuación, quizás en MyGdxGame o aquí.
+    }
+
+    @Override
+    public void onPlayerHealed(int amount) {
+        // Aquí puedes implementar la lógica para curar al personaje
+        // Por ejemplo: personaje.curar(amount);
+        Gdx.app.log("TiledMapScreen", "Player healed by: " + amount);
+    }
+
+    @Override
+    public void onNewFloatingText(TextoFlotante text) {
+        // EntityManager ya añade el texto a su lista interna, así que no necesitamos hacer nada aquí
+        // a menos que TiledMapScreen necesite una referencia directa a todos los textos flotantes.
+        // Por ahora, solo lo logueamos.
+        //Gdx.app.log("TiledMapScreen", "New floating text: " + text.getText());
+
+    }
+
+    @Override
+    public void onPlayerComponentChanged(ComponentePersonaje newPlayerComponent) {
+        // Esto es crucial: actualizar la instancia del personaje en TiledMapScreen
+        // cuando se aplica un decorador (ej. VidaRegeneracionDecorator)
+        this.personaje = (Personaje) newPlayerComponent;
+        Gdx.app.log("TiledMapScreen", "Player component changed (e.g., decorator applied)");
     }
 }

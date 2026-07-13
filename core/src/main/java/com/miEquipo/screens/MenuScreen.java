@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.Color;
 import com.miEquipo.mygame.MyGdxGame;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import com.miEquipo.mapas.Primer_mapa; // Importar Primer_mapa
 
 /**
  * Pantalla del menú principal del juego.
@@ -111,7 +112,8 @@ public class MenuScreen implements Screen {
                 game.setScreen(new RankScreen(game));
                 dispose();
             } else if (touchX > tiledMapX && touchX < tiledMapX + tiledMapWidth && touchY > tiledMapY - tiledMapHeight && touchY < tiledMapY) {
-                game.setScreen(new TiledMapScreen(game)); // Nueva pantalla para el mapa Tiled
+                // Instancia directamente TiledMapScreen con Primer_mapa
+                game.setScreen(new TiledMapScreen(game, new Primer_mapa()));
                 dispose();
             }
         }

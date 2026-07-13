@@ -14,7 +14,6 @@ import com.miEquipo.patron_states.EstadoQuieto;
 public class Personaje implements ComponentePersonaje, Disposable { // Implementa Disposable
     // --- Constants ---
     private static final float ANIMATION_FRAME_DURATION = 0.05f;
-    // private static final float JUMP_VELOCITY = 650; // Ya no se usa aquí, se maneja en TiledMapScreen
     private static final float CHARACTER_WIDTH = 150;
     private static final float CHARACTER_HEIGHT = 150;
     private static final String ANIM_FOLDER_REPOSO = "personaje_reposo";
@@ -22,6 +21,10 @@ public class Personaje implements ComponentePersonaje, Disposable { // Implement
     private static final String LOG_TAG_ANIM_LOADER = "AnimationLoader";
     private static final String ERROR_MSG_ANIM_LOAD_FAILED = "Error al cargar textura para %s: %s";
     private static final String ERROR_MSG_NO_FRAMES = "CRÍTICO: No se cargaron fotogramas de animación para la carpeta: %s. ¡Verifica tus assets! Esto causará un error.";
+
+    // Cooldown para el disparo de proyectiles
+    private static final float COOLDOWN_DISPARO = 0.3f; // 0.3 segundos entre disparos
+    private float tiempoUltimoDisparo = 0;
 
     private float x, y;
     private float velocidadX, velocidadY;
@@ -117,6 +120,7 @@ public class Personaje implements ComponentePersonaje, Disposable { // Implement
     @Override
     public void actualizar(float delta) {
         tiempoAnimacion += delta;
+        tiempoUltimoDisparo += delta; // Actualizar el tiempo del cooldown
 
         if (!atacando) {
             estadoActual.manejarEntrada(this);
@@ -125,10 +129,6 @@ public class Personaje implements ComponentePersonaje, Disposable { // Implement
 
         if (velocidadX > 0) mirandoDerecha = true;
         else if (velocidadX < 0) mirandoDerecha = false;
-
-        // ELIMINADAS estas líneas: la posición x e y se actualizan en TiledMapScreen
-        // this.x += velocidadX * delta;
-        // this.y += velocidadY * delta;
 
         if (atacando && animAtaque.isAnimationFinished(tiempoAnimacion)) {
             atacando = false;
@@ -150,6 +150,23 @@ public class Personaje implements ComponentePersonaje, Disposable { // Implement
             this.listenerAtaque = listener;
             this.velocidadX = 0; // Detener movimiento horizontal durante el ataque
         }
+    }
+
+    /**
+     * Intenta disparar un proyectil.
+     * @return Una instancia de Proyectil si se pudo disparar, o null si el cooldown no ha terminado.
+     */
+    public Proyectil disparar() {
+        if (tiempoUltimoDisparo >= COOLDOWN_DISPARO) {
+            // Calcular la posición inicial del proyectil para que salga del centro del personaje
+            float proyectilX = mirandoDerecha ? x + CHARACTER_WIDTH : x - Proyectil.WIDTH;
+            float proyectilY = y + CHARACTER_HEIGHT / 2 - Proyectil.HEIGHT / 2;
+
+            Proyectil nuevoProyectil = new Proyectil(proyectilX, proyectilY, mirandoDerecha);
+            tiempoUltimoDisparo = 0; // Reiniciar el cooldown
+            return nuevoProyectil;
+        }
+        return null;
     }
 
     @Override

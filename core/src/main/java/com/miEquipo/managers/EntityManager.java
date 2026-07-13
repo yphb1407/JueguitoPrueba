@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Disposable;
-import com.miEquipo.Entidades.*;
+import com.miEquipo.Entidades.*; // Mantener para TextoFlotante, ItemRegeneracion
 import com.miEquipo.Decorador.VidaRegeneracionDecorator;
 
 import java.util.ArrayList;
@@ -14,17 +14,14 @@ import java.util.List;
 
 /**
  * Gestiona el ciclo de vida (actualización, renderizado, colisiones) de las entidades del juego
- * como enemigos, proyectiles, ítems de regeneración y textos flotantes.
+ * como ítems de regeneración y textos flotantes.
+ * Actúa como un receptor de eventos para generar textos flotantes y notificar al juego principal.
  */
 public class EntityManager implements Disposable {
-    // --- Constants (consider centralizing these later if many managers need them) ---
-    private static final int PROJECTILE_ENEMY_COLLISION_THRESHOLD = 40;
+    // --- Constants ---
     private static final int ENEMY_SCORE_VALUE = 100;
-    private static final int ENEMY_PLAYER_COLLISION_THRESHOLD_X = 35;
-    private static final int ENEMY_PLAYER_COLLISION_THRESHOLD_Y = 40;
-    private static final int PLAYER_DAMAGE_VALUE = 10;
-    private static final int MAX_PLAYER_HEALTH = 500; // Used for healing cap
-    private static final int ENEMY_DESPAWN_OFFSET = 300;
+    private static final int PLAYER_DAMAGE_VALUE = 10; // Daño que recibe el jugador por un enemigo
+    private static final int MAX_PLAYER_HEALTH = 500; // Usado para el límite de curación
     private static final String TEXT_HEALTH_GAIN_PREFIX = "+";
     private static final String TEXT_HEALTH_GAIN_SUFFIX = " HP";
     private static final String TEXT_HEALTH_LOSS = "-10 HP";
@@ -32,8 +29,9 @@ public class EntityManager implements Disposable {
     private static final String TEXT_ITEM_COLLECTED = "Item recogido";
 
 
-    private final List<Enemigo> enemigos;
-    private final List<Proyectil> proyectiles;
+    // Eliminamos las listas de enemigos y proyectiles, ya que TiledMapScreen las gestiona.
+    // private final List<Enemigo> enemigos;
+    // private final List<Proyectil> proyectiles;
     private final List<TextoFlotante> textos;
     private final List<ItemRegeneracion> items;
 
@@ -52,20 +50,16 @@ public class EntityManager implements Disposable {
     private EntityManagerCallback callback;
 
     public EntityManager(EntityManagerCallback callback) {
-        this.enemigos = new ArrayList<>();
-        this.proyectiles = new ArrayList<>();
+        // this.enemigos = new ArrayList<>(); // Eliminado
+        // this.proyectiles = new ArrayList<>(); // Eliminado
         this.textos = new ArrayList<>();
         this.items = new ArrayList<>();
         this.callback = callback;
     }
 
-    public void addEnemigo(Enemigo enemigo) {
-        enemigos.add(enemigo);
-    }
-
-    public void addProyectil(Proyectil proyectil) {
-        proyectiles.add(proyectil);
-    }
+    // Eliminamos addEnemigo y addProyectil
+    // public void addEnemigo(Enemigo enemigo) { enemigos.add(enemigo); }
+    // public void addProyectil(Proyectil proyectil) { proyectiles.add(proyectil); }
 
     public void addItem(ItemRegeneracion item) {
         items.add(item);
@@ -76,19 +70,18 @@ public class EntityManager implements Disposable {
     }
 
     /**
-     * Actualiza el estado de todas las entidades gestionadas.
+     * Actualiza el estado de las entidades gestionadas (ítems y textos flotantes).
      * @param delta El tiempo transcurrido desde el último frame.
-     * @param groundY La coordenada Y del suelo para entidades que interactúan con él.
-     * @param personaje El componente del personaje principal para detección de colisiones.
+     * @param personaje El componente del personaje principal para detección de colisiones con ítems.
      */
-    public void update(float delta, float groundY, ComponentePersonaje personaje) {
+    public void update(float delta, ComponentePersonaje personaje) { // Eliminado groundY
         // Actualizar ítems
         Iterator<ItemRegeneracion> itI = items.iterator();
         while (itI.hasNext()) {
             ItemRegeneracion item = itI.next();
-            item.actualizar(delta, groundY);
+            item.actualizar(delta, personaje.getY()); // Usamos la Y del personaje como referencia de suelo para el item
             // Asumiendo un tamaño de caja de colisión de 64x64 para el personaje
-            if (item.colisiona(personaje.getX(), personaje.getY(), 64, 64)) {
+            if (item.colisiona(personaje.getX(), personaje.getY(), personaje.getWidth(), personaje.getHeight())) { // Usar dimensiones reales del personaje
                 if (callback != null) {
                     // Notificar que el personaje ha sido decorado (ej. con regeneración)
                     callback.onPlayerComponentChanged(
@@ -108,6 +101,9 @@ public class EntityManager implements Disposable {
             }
         }
 
+        // Eliminamos la lógica de actualización y colisión de proyectiles y enemigos
+        // Esta lógica ahora se maneja en TiledMapScreen.java
+        /*
         // Actualizar proyectiles
         Iterator<Proyectil> itP = proyectiles.iterator();
         while (itP.hasNext()) {
@@ -156,6 +152,7 @@ public class EntityManager implements Disposable {
                 itE.remove();
             }
         }
+        */
 
         // Actualizar textos flotantes
         Iterator<TextoFlotante> itT = textos.iterator();
@@ -169,22 +166,25 @@ public class EntityManager implements Disposable {
     }
 
     /**
-     * Dibuja todas las entidades gestionadas.
+     * Dibuja las entidades gestionadas (ítems y textos flotantes).
      * @param batch El SpriteBatch para dibujar.
      * @param font La fuente para dibujar textos flotantes.
      */
     public void render(SpriteBatch batch, BitmapFont font) {
         for (ItemRegeneracion item : items) item.dibujar(batch);
-        for (Proyectil p : proyectiles) p.dibujar(batch);
-        for (Enemigo enemigo : enemigos) enemigo.dibujar(batch);
+        // Eliminamos el renderizado de proyectiles y enemigos
+        // for (Proyectil p : proyectiles) p.dibujar(batch);
+        // for (Enemigo enemigo : enemigos) enemigo.dibujar(batch);
         for (TextoFlotante t : textos) t.dibujar(batch, font);
     }
 
     /**
-     * Libera los recursos de todas las entidades gestionadas.
+     * Libera los recursos de las entidades gestionadas (ítems).
      */
     @Override
     public void dispose() {
+        // Eliminamos el dispose de enemigos y proyectiles
+        /*
         for (Enemigo e : enemigos) {
             e.dispose();
         }
@@ -194,11 +194,44 @@ public class EntityManager implements Disposable {
             p.dispose();
         }
         proyectiles.clear();
+        */
 
         for (ItemRegeneracion item : items) {
             item.dispose();
         }
         items.clear();
         // TextoFlotante no implementa Disposable, no necesita dispose.
+    }
+
+    // --- Nuevos métodos para recibir eventos de TiledMapScreen ---
+
+    /**
+     * Notifica a EntityManager que un enemigo ha sido derrotado.
+     * Genera texto flotante de puntuación y notifica al callback.
+     * @param enemigoX La posición X del enemigo derrotado.
+     * @param enemigoY La posición Y del enemigo derrotado.
+     */
+    public void onEnemyDefeated(float enemigoX, float enemigoY) {
+        if (callback != null) {
+            callback.onNewFloatingText(
+                new TextoFlotante(TEXT_SCORE_GAIN, enemigoX, enemigoY + 60, Color.YELLOW)
+            );
+            callback.onScoreIncreased(ENEMY_SCORE_VALUE);
+        }
+    }
+
+    /**
+     * Notifica a EntityManager que el jugador ha sido golpeado por un enemigo.
+     * Genera texto flotante de daño y notifica al callback.
+     * @param personajeX La posición X del personaje.
+     * @param personajeY La posición Y del personaje.
+     */
+    public void onPlayerHit(float personajeX, float personajeY) {
+        if (callback != null) {
+            callback.onPlayerDamaged(PLAYER_DAMAGE_VALUE);
+            callback.onNewFloatingText(
+                new TextoFlotante(TEXT_HEALTH_LOSS, personajeX, personajeY + 80, Color.RED)
+            );
+        }
     }
 }

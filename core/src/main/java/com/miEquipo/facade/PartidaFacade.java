@@ -90,7 +90,7 @@ public class PartidaFacade implements Disposable, EntityManager.EntityManagerCal
         personaje.actualizar(delta);
         checkRegenerationDecoratorStatus();
 
-        entityManager.update(delta, GROUND_Y, personaje);
+        ///entityManager.update(delta, GROUND_Y, personaje);
     }
 
     /**
@@ -103,7 +103,7 @@ public class PartidaFacade implements Disposable, EntityManager.EntityManagerCal
             boolean desdeDerecha = MathUtils.randomBoolean();
             float spawnX = desdeDerecha ? Gdx.graphics.getWidth() + 100 : -100;
             float velX = desdeDerecha ? -MathUtils.random(100, 200) : MathUtils.random(100, 200);
-            entityManager.addEnemigo(EnemigoFactory.crearEnemigo(ENEMY_TYPE_GOOMBA, spawnX, GROUND_Y, velX));
+            //entityManager.addEnemigo(EnemigoFactory.crearEnemigo(ENEMY_TYPE_GOOMBA, spawnX, GROUND_Y, velX));
             timerEnemigos = 0;
             tiempoSpawnEnemigo = Math.max(0.7f, tiempoSpawnEnemigo - 0.02f);
         }
@@ -136,7 +136,7 @@ public class PartidaFacade implements Disposable, EntityManager.EntityManagerCal
             Personaje realPersonaje = getRealPersonaje(personaje);
             if (realPersonaje != null) {
                 realPersonaje.iniciarAtaque(() -> {
-                    entityManager.addProyectil(new Proyectil(personaje.getX(), personaje.getY() + PROJECTILE_SPAWN_OFFSET_Y, personaje.isMirandoDerecha()));
+                    //entityManager.addProyectil(new Proyectil(personaje.getX(), personaje.getY() + PROJECTILE_SPAWN_OFFSET_Y, personaje.isMirandoDerecha()));
                 });
             }
         }

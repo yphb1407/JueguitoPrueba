@@ -13,8 +13,8 @@ public class Proyectil implements Disposable {
     // --- Constants ---
     private static final String TEXTURE_PATH = "proyectil.png";
     private static final float SPEED_X = 400f; // Velocidad base del proyectil
-    private static final float WIDTH = 32;
-    private static final float HEIGHT = 32;
+    public static final float WIDTH = 32; // Hacer público para acceso desde Personaje
+    public static final float HEIGHT = 32; // Hacer público para acceso desde Personaje
     private static final float DESPAWN_OFFSET = 50; // Distancia fuera de pantalla para desactivar el proyectil
 
     private float x, y;
@@ -43,7 +43,8 @@ public class Proyectil implements Disposable {
      */
     public void actualizar(float delta) {
         x += velocidadX * delta;
-        // Desactivar si sale de la pantalla
+        // Desactivar si sale de la pantalla (usando Gdx.graphics.getWidth() como referencia, aunque en TiledMapScreen
+        // se usará mapWidthInPixels para colisiones con el mapa)
         if (x < -DESPAWN_OFFSET || x > Gdx.graphics.getWidth() + DESPAWN_OFFSET) {
             activo = false;
         }
@@ -66,6 +67,14 @@ public class Proyectil implements Disposable {
     }
 
     /**
+     * Establece el estado de actividad del proyectil.
+     * @param activo true para activar, false para desactivar.
+     */
+    public void setActivo(boolean activo) {
+        this.activo = activo;
+    }
+
+    /**
      * Obtiene la coordenada X actual del proyectil.
      * @return La coordenada X del proyectil.
      */
@@ -76,6 +85,18 @@ public class Proyectil implements Disposable {
      * @return La coordenada Y del proyectil.
      */
     public float getY() { return y; }
+
+    /**
+     * Obtiene el ancho del proyectil.
+     * @return El ancho del proyectil.
+     */
+    public float getWidth() { return WIDTH; }
+
+    /**
+     * Obtiene el alto del proyectil.
+     * @return El alto del proyectil.
+     */
+    public float getHeight() { return HEIGHT; }
 
     /**
      * Libera los recursos utilizados por el proyectil, como su textura.
