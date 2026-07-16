@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.math.Rectangle; // Importar Rectangle
 import com.miEquipo.Entidades.*;
 import com.miEquipo.Decorador.VidaRegeneracionDecorator;
 
@@ -17,13 +18,13 @@ import java.util.List;
  */
 public class EntityManager implements Disposable {
     // --- Constants (consider centralizing these later if many managers need them) ---
-    private static final int PROJECTILE_ENEMY_COLLISION_THRESHOLD = 40;
+    // private static final int PROJECTILE_ENEMY_COLLISION_THRESHOLD = 40; // This is no longer needed with bounding box collision
     private static final int ENEMY_SCORE_VALUE = 100;
     private static final int ENEMY_PLAYER_COLLISION_THRESHOLD_X = 35;
     private static final int ENEMY_PLAYER_COLLISION_THRESHOLD_Y = 40;
     private static final int PLAYER_DAMAGE_VALUE = 10;
     private static final int MAX_PLAYER_HEALTH = 500; // Used for healing cap
-    private static final int ENEMY_DESPAWN_OFFSET = 300;
+    private static final int ENTITY_DESPAWN_OFFSET = 300; // Offset general para despawn de entidades
     private static final String TEXT_HEALTH_GAIN_PREFIX = "+";
     private static final String TEXT_HEALTH_GAIN_SUFFIX = " HP";
     private static final String TEXT_HEALTH_LOSS = "-10 HP";
@@ -82,6 +83,16 @@ public class EntityManager implements Disposable {
         while (itI.hasNext()) {
             ItemRegeneracion item = itI.next();
             item.actualizar(delta, 0); // groundY is no longer passed, items will need to handle their own collision or fall
+
+            // Lógica para eliminar ítems que salen de los límites del mundo
+            if (item.getX() < -ENTITY_DESPAWN_OFFSET ||
+                item.getX() > worldWidth + ENTITY_DESPAWN_OFFSET ||
+                item.getY() < -ENTITY_DESPAWN_OFFSET) { // También si cae por debajo del mundo
+                item.dispose();
+                itI.remove();
+                continue; // Pasar al siguiente ítem
+            }
+
             // Asumiendo un tamaño de caja de colisión de 64x64 para el personaje
             if (item.colisiona(personaje.getX(), personaje.getY(), 64, 64)) {
                 if (callback != null) {
@@ -113,9 +124,16 @@ public class EntityManager implements Disposable {
                 itP.remove();
                 continue;
             }
+            // Crear un rectángulo para el proyectil
+            Rectangle projectileBounds = new Rectangle(p.getX(), p.getY(), Proyectil.WIDTH, Proyectil.HEIGHT);
+
             for (Iterator<Enemigo> itE = enemigos.iterator(); itE.hasNext(); ) {
                 Enemigo e = itE.next();
-                if (Math.abs(p.getX() - e.getX()) < PROJECTILE_ENEMY_COLLISION_THRESHOLD) {
+                // Crear un rectángulo para el enemigo
+                Rectangle enemyBounds = new Rectangle(e.getX(), e.getY(), e.getAncho(), e.getAlto());
+
+                // Verificar colisión usando los rectángulos
+                if (projectileBounds.overlaps(enemyBounds)) {
                     if (callback != null) {
                         callback.onNewFloatingText(
                             new TextoFlotante(TEXT_SCORE_GAIN, e.getX(), e.getY() + 60, Color.YELLOW)
@@ -126,7 +144,7 @@ public class EntityManager implements Disposable {
                     itE.remove();
                     p.dispose();
                     itP.remove();
-                    break;
+                    break; // Un proyectil solo puede golpear a un enemigo
                 }
             }
         }
@@ -147,10 +165,11 @@ public class EntityManager implements Disposable {
                 e.dispose();
                 itE.remove();
             }
-            // else if (e.getX() < -ENEMY_DESPAWN_OFFSET || e.getX() > worldWidth + ENEMY_DESPAWN_OFFSET) { // Comentado temporalmente para depuración
-            //     e.dispose();
-            //     itE.remove();
-            // }
+            // Lógica para eliminar enemigos que salen de los límites del mundo
+            else if (e.getX() < -ENTITY_DESPAWN_OFFSET || e.getX() > worldWidth + ENTITY_DESPAWN_OFFSET) {
+                e.dispose();
+                itE.remove();
+            }
         }
 
         // Actualizar textos flotantes

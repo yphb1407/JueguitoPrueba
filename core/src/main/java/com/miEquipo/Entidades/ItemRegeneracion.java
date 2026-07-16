@@ -12,8 +12,8 @@ public class ItemRegeneracion implements Disposable {
     // --- Constants ---
     private static final String TEXTURE_PATH = "regeneracion.png";
     private static final float FALL_SPEED = 150f; // Velocidad de caída del item
-    private static final float ITEM_WIDTH = 48;
-    private static final float ITEM_HEIGHT = 48;
+    private static final float ITEM_WIDTH = 100;
+    private static final float ITEM_HEIGHT = 100;
 
     private float x, y;
     private Texture textura;

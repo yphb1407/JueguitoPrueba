@@ -67,7 +67,7 @@ public class PartidaFacade implements Disposable, EntityManager.EntityManagerCal
         handleInput();
         applyPhysics(delta);
 
-        spawnManager.update(delta);
+        spawnManager.update(delta, scoreActual); // <--- CAMBIO AQUÍ: Se pasa el scoreActual
         personaje.actualizar(delta);
         entityManager.update(delta, personaje, worldWidth);
 

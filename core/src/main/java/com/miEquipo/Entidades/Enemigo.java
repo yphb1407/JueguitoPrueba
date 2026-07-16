@@ -1,6 +1,6 @@
 package com.miEquipo.Entidades;
 
-import com.badlogic.gdx.Gdx; // Importar Gdx para logging
+import com.badlogic.gdx.Gdx; // Importar Gdx para logging (aunque ya no se usará para logs de posición)
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -80,8 +80,8 @@ public abstract class Enemigo implements Cloneable, Disposable {
         float newX = x + velocidadX * delta;
         float newY = y + velocidadY * delta;
 
-        // Log de estado inicial del frame
-        Gdx.app.log("Enemigo", String.format("Tipo: %s, Pos: (%.2f, %.2f), Vel: (%.2f, %.2f) - Inicio", tipo, x, y, velocidadX, velocidadY));
+        // Log de estado inicial del frame - ELIMINADO
+        // Gdx.app.log("Enemigo", String.format("Tipo: %s, Pos: (%.2f, %.2f), Vel: (%.2f, %.2f) - Inicio", tipo, x, y, velocidadX, velocidadY));
 
 
         // --- Manejar colisión vertical ---
@@ -94,12 +94,12 @@ public abstract class Enemigo implements Cloneable, Disposable {
                 // Ajustar la posición Y para que esté justo encima del tile sólido
                 int bottomTileRow = (int) (oldY / tileHeight);
                 y = (bottomTileRow + 1) * tileHeight;
-                Gdx.app.log("Enemigo", String.format("Tipo: %s, Colisión vertical (cayendo). Ajuste Y a %.2f", tipo, y));
+                // Gdx.app.log("Enemigo", String.format("Tipo: %s, Colisión vertical (cayendo). Ajuste Y a %.2f", tipo, y)); // ELIMINADO
             } else if (velocidadY > 0) { // Subiendo (chocando con el techo)
                 // Ajustar la posición Y para que esté justo debajo del tile sólido
                 int topTileRow = (int) ((oldY + alto) / tileHeight);
                 y = topTileRow * tileHeight - alto;
-                Gdx.app.log("Enemigo", String.format("Tipo: %s, Colisión vertical (subiendo). Ajuste Y a %.2f", tipo, y));
+                // Gdx.app.log("Enemigo", String.format("Tipo: %s, Colisión vertical (subiendo). Ajuste Y a %.2f", tipo, y)); // ELIMINADO
             }
             velocidadY = 0; // Detener movimiento vertical
         }
@@ -110,11 +110,11 @@ public abstract class Enemigo implements Cloneable, Disposable {
         if (collidesWithMap(bounds)) {
             x = oldX; // Revertir a la posición X anterior
             velocidadX = -velocidadX; // Rebotar o cambiar de dirección
-            Gdx.app.log("Enemigo", String.format("Tipo: %s, Colisión horizontal. Revertir X a %.2f, nueva VelX %.2f", tipo, x, velocidadX));
+            // Gdx.app.log("Enemigo", String.format("Tipo: %s, Colisión horizontal. Revertir X a %.2f, nueva VelX %.2f", tipo, x, velocidadX)); // ELIMINADO
         }
 
-        // Log de estado final del frame
-        Gdx.app.log("Enemigo", String.format("Tipo: %s, Pos: (%.2f, %.2f), Vel: (%.2f, %.2f) - Fin", tipo, x, y, velocidadX, velocidadY));
+        // Log de estado final del frame - ELIMINADO
+        // Gdx.app.log("Enemigo", String.format("Tipo: %s, Pos: (%.2f, %.2f), Vel: (%.2f, %.2f) - Fin", tipo, x, y, velocidadX, velocidadY));
     }
 
     /**
@@ -243,4 +243,3 @@ public abstract class Enemigo implements Cloneable, Disposable {
         return cell != null && isTileSolid(cell.getTile().getId());
     }
 }
-

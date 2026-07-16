@@ -40,7 +40,7 @@ public class Proyectil implements Disposable {
 
         try {
             this.textura = new Texture(TEXTURE_PATH);
-            Gdx.app.log("Proyectil", "Textura cargada exitosamente: " + TEXTURE_PATH);
+            // Gdx.app.log("Proyectil", "Textura cargada exitosamente: " + TEXTURE_PATH); // ELIMINADO
         } catch (GdxRuntimeException e) {
             Gdx.app.error("Proyectil", "ERROR: No se pudo cargar la textura del proyectil desde: " + TEXTURE_PATH + ". Mensaje: " + e.getMessage());
             this.textura = null; // Establecer a null para evitar NullPointerException
